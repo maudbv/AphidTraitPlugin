@@ -202,9 +202,37 @@ def runScript():
 		global counter
 		counter = counter + 1
 		openImageIndex(counter, image_paths)
-
-
 	
+	######### EVENT FUNCTION: Start with a new image ##########
+	def openChoice(event):
+		print(image_paths)
+		# Function to select path in a list
+		def getIMGnumber(paths_list):  
+			gd = GenericDialog("Select where to start again")
+			gd.addChoice("First photo to open in the list", paths_list, paths_list[1])  
+			gd.addNumericField("Number of the photo", 0)
+			gd.showDialog()  
+			
+			if gd.wasCanceled():  
+				print "User canceled dialog!"
+				return None
+		 
+			# Read out the options  
+			pathNumber1 = gd.getNextChoiceIndex()  
+			pathNumber2 = gd.getNextNumber()  
+			return int(pathNumber2)
+	
+		# Choose a starting image
+		start_index = getIMGnumber(image_paths)
+	
+		# Update the counter to start where we want
+		global counter
+		counter = start_index
+		print "New start at:", counter
+	
+		# Open image corresponding to counter
+		openImageIndex(counter, image_paths)
+		
 	######### EVENT FUNCTION: EXIT ##########
 	def exitScript(event):
 		rm = RoiManager().getInstance()
@@ -239,6 +267,7 @@ def runScript():
 	
 	##### List all image file paths #######
 	image_paths = listPaths(source_directory, photo_label)
+	global image_paths
 	nb = len(image_paths)
 	if nb!=0: 
 		print "We found", nb, "images of", photo_label
@@ -248,6 +277,7 @@ def runScript():
 	
 	############ Start by opening first picture ############
 	counter = 0
+	global counter
 	openImageIndex(counter, image_paths)
 	
 	############ Define name of trait ############ 
@@ -279,8 +309,8 @@ def runScript():
 	button4 = JButton("Save Results", actionPerformed=save)
 	button5 = JButton("Clear selection", actionPerformed=clearROI)
 	button6 = JButton("Next image", actionPerformed=openNext)
-#	button6 = JButton("Reset starting image", actionPerformed=openChoice)  TO DO
-	button7 = JButton("Exit", actionPerformed=exitScript)
+	#button7 = JButton("Reset starting image", actionPerformed=openChoice)  #TO DO NOT WORKING
+	button8 = JButton("Exit", actionPerformed=exitScript)
 	
 	frame.setLayout(GridLayout(2,4))
 	
@@ -290,7 +320,8 @@ def runScript():
 	frame.add(button4)
 	frame.add(button5)
 	frame.add(button6)
-	frame.add(button7)
+	#frame.add(button7)
+	frame.add(button8)
 	frame.pack()
 	frame.setVisible(True) 
 

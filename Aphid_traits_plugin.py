@@ -33,6 +33,10 @@ def runScript():
 	
 		dc = DirectoryChooser("/Users/maud/Desktop/fiji tests/")  
 		path = dc.getDirectory()
+
+		if path is None:
+			print("Canceled dialog. Exiting...")
+			return
 		
 		gdp = GenericDialogPlus("Choose folders...")
 		gdp.addDirectoryField("Choose folder of images", path + "images/")

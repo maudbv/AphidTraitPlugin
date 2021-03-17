@@ -4,10 +4,11 @@
 
 # General utilities
 import os, sys
-
+from os import path
 
 # Image J specific
 from ij import IJ, WindowManager as WM
+from ij.io import FileSaver
 from ij.gui import Roi
 from ij.plugin.frame import RoiManager
 
@@ -25,41 +26,68 @@ from fiji.util.gui import GenericDialogPlus
 from javax.swing import JFrame, JButton, JOptionPane
 from java.awt import GridLayout
 
+###___________________ SET IMAGEJ OPTIONS _________________________________ ###
 
-###____________ FUNCTION running the plugin ____________ ###
+# # label the ROI and add to image
+# options = LABELS + ADD_TO_OVERLAY
+# # see https://imagej.nih.gov/ij/developer/api/ij/measure/Measurements.html
+# # Measure only the length of the ROI (= lines)
+# Analyzer.setMeasurements(options)
+
+
+###___________________ MAIN PLUGIN function _______________________________ ###
+
 def runScript():
 	""" script asks to choose directories, then loads a user interface,
 	with buttons to streamline image opening, measurements, and saving """
 
-	############ Set measurement options ###########
+		###_________ DEFINE FUNCTIONS for the plugin _____________________ ###
 
-	# # label the ROI and add to image
-	# options = LABELS + ADD_TO_OVERLAY
-	# # see https://imagej.nih.gov/ij/developer/api/ij/measure/Measurements.html
-	# # Measure only the length of the ROI (= lines)
-	# Analyzer.setMeasurements(options)
+	##### FUNCTION save file safely  ##########
+	def safelySave(name_object, folder, ext):
+		""" check if filename exists, add number if it does"""
+		fs = FileSaver(name_object)
 
-	IJ.setTool("Line")
+		# Test if the folder exists before attempting to save the image:
+		if path.exists(folder) and path.isdir(folder):
+			print "folder exists:", folder
+			filepath = path.join(folder,name_object, ext) # Operating System-specific
 
+			# Modify version name if name already exists
+			i = 1
+			while path.exists(filepath):
+				print "File exists! adding number"
+				filepath = path.join(folder,name_object + "_version"+ i + ext)
+				i = i + 1
 
-	############ FUNCTION Choose source directory ##########
+			# save with the unique file name
+			fs.saveAs(filepath)
+			print "File saved successfully at ", filepath
+
+		else:
+			print "Folder does not exist or it's not a folder!"
+
+	##### FUNCTION Choose source directory ##########
 	def getDirectories():
+		""" opens a default directory and asks user to select a root directory
+		for the analysis: three sub-folders are then automatically selected,
+		but can be modified by user """
 
 		dc = DirectoryChooser("/Users/maud/Desktop/fiji tests/")
-		path = dc.getDirectory()
+		root_path = dc.getDirectory()
 
-		if path is None:
-			print("Canceled dialog : THIS IS WORKING!!!. Exiting...")
+		if root_path is None:
+			IJ.log("User cancelled dialog. Exiting...")
 			return
 
 		gdp = GenericDialogPlus("Choose folders...")
-		gdp.addDirectoryField("Folder of original images", path + "images/")
-		gdp.addDirectoryField("Folder to save results", path + "results/")
-		gdp.addDirectoryField("Folder to save measured images", path + "measured images/")
+		gdp.addDirectoryField("Folder of original images", root_path + "images/")
+		gdp.addDirectoryField("Folder to save results", root_path + "results/")
+		gdp.addDirectoryField("Folder to save measured images", root_path + "measured images/")
 		gdp.showDialog()
 
 		if gdp.wasCanceled():
-			print "User canceled. Exiting...."
+			IJ.log("User cancelled dialog. Exiting...")
 			return
 
 		dir1 = gdp.getNextString()
@@ -67,10 +95,12 @@ def runScript():
 		dir3 = gdp.getNextString()
 		return dir1, dir2, dir3
 
-	#############  FUNCTION: DEFINE category of photo ############
+	#####  FUNCTION: DEFINE category of photo ############
 	def getPhotoCategory(categories):
+		""" asks user to select the type of microscopic photos to select """
+
 		gd = GenericDialog("Select photos")
-		gd.addChoice("choose the type of photos for today", categories, categories[1])
+		gd.addChoice("choose the type of photos for today", categories, categories[0])
 		gd.showDialog()
 
 		if gd.wasCanceled():
@@ -81,10 +111,12 @@ def runScript():
 		photo_cat = gd.getNextChoice()
 		return photo_cat # a tuple with the parameters
 
-
 	##### FUNCTION List all image file paths #######
 	def listPaths(directory, label):
+		"""" returns a list of paths to all the files in a given directory
+		whose name contains a certain string pattern defined by label """
 		path_list = []
+		filename_list = []
 		walkList = os.walk(directory)
 		# For loop in recursive walklist
 		for root, directories, filenames in walkList:
@@ -93,51 +125,74 @@ def runScript():
 				ind = filename.find(label)
 				if ind > -1 :
 					path_list.append(os.path.join(root, filename))
+					filename_list.append(filename)
 					print filename
 				else :
 					continue
-		return path_list
+		return (path_list, filename_list) # a tupple
 
 
-	######### FUNCTION: OPEN IMAGE from path list ##########
+	##### FUNCTION List all image file paths #######
+	def choosePhotoIndex(file_list):
+		"""" selects the index of an image in the list of files """
+		gdp = GenericDialogPlus("Choose starting picture")
+		gdp.addMessage("Select the name of the image to open," +
+		" OR the number of the image in the list if known:")
+		gdp.addChoice("file name:", file_list, None)
+		gdp.addNumericField("OR file number", 0 , 0)
+		gdp.showDialog()
 
+		if gdp.wasCanceled():
+			IJ.log("User cancelled dialog. Exiting...")
+			return
+
+		new_counter = gdp.getNextChoiceIndex()
+		if new_counter is None:
+			new_counter = gdp.getNextNumber()
+		return new_counter
+
+	##### FUNCTION: OPEN IMAGE from path list ##########
 	def openImageIndex(index, paths):
-		if len( paths) > index:
+
+		""" Open image corresponding to a certain index in the list of paths
+		returns "none" if index is larger than or equal to length of list """
+
+		if len(paths) > index:
 			image_path =  paths[index]
 			print "Opening image:", image_path
-			IJ.open( paths[index])
+			IJ.open(paths[index])
 		else:
 			print "No more valid image paths"
 			return None
 
+	#####  FUNCTION: user defined TRAIT label ############
+	def getTraitLabel(types):
+		""" ask user input to select the aphid trait name
+		which will be used as label in the results
+		return trait label as a string """
 
-	#############  FUNCTION: DEFINE TRAIT label ############
-	def getOptions(types):
-	  gd = GenericDialog("Options")
-	  gd.addChoice("Choose trait label", types, types[1])
-	  gd.showDialog()
+		gd = GenericDialog("Options")
+		gd.addChoice("Choose trait label", types, types[0])
+		gd.showDialog()
 
-	  if gd.wasCanceled():
-	    print "User canceled dialog!"
-	    return None
+		if gd.wasCanceled():
+			print "User canceled dialog!"
+			return None
 
-	  # Read out the options
-	  label = gd.getNextChoice()
-	  return label # a tuple with the parameters
+		label = gd.getNextChoice()
+		return label # a tuple with the parameters
 
-	#############  EVENT FUNCTION: choose another trait label: ############
+	############# EVENT FUNCTION 1 : choose another trait label: ############
 	def choose_trait(event):
-		trait = getOptions()
-		#if trait is not None:
-	  	#	trait_label = trait # unpack each parameter
-		IJ.log("Trait selected for measurement:"+ trait)
+		""" Event: open dialog for choosing trait label
+		returns the chosen trait label as a string """
+		trait = getTraitLabel(trait_types)
+		IJ.log("Trait selected for measurement:" + trait)
 		return trait
 
-
-	#############  EVENT FUNCTION: for selecting and labelling ROI ############
+	############# EVENT FUNCTION 2: for selecting and labelling ROI
 	def select(event):
-	  """ event: the ActionEvent that tells us about the button having been clicked.
-	      Select lines or arrows defined by user and add them to ROI Manager """
+	  """ Select lines or arrows defined by user and add them to ROI Manager """
 
 	  imp = WM.getCurrentImage()
 	  if imp:
@@ -147,18 +202,21 @@ def runScript():
 		#count number of ROI
 		n = rm.getCount()
 
+		# Add the new ROI
 		roi1 = imp.getRoi()
 		rm.addRoi(roi1)
 
+		# create name with repetition number (=index + 1)
+		name = trait + "_" + str(n + 1)
+
 		rm.select(n)
-		name = trait + "_" + str(n)
-		IJ.log("Element" + name +"was added")
-		rm.runCommand("Rename",name)
+		rm.runCommand("Rename", name)
+		IJ.log("Element" + name + "was added")
 
 	  else:
 	    IJ.log("Error: Open an image first")
 
-	############ EVENT FUNCTION: Measure ############
+	############# EVENT FUNCTION 3: Measure
 	def measure(event):
 		""" measure length of all elements in ROI manager """
 
@@ -177,8 +235,7 @@ def runScript():
 		rm.setSelectedIndexes(range(n))
 		rm.runCommand("Measure")
 
-
-	############ EVENT FUNCTION: to clear ROI ############
+	############# EVENT FUNCTION 4: to clear ROI
 	def clearROI(event):
 		""" Delete all elements in the ROI manager """
 		imp = WM.getCurrentImage()
@@ -189,8 +246,7 @@ def runScript():
 		rm.runCommand("Delete")
 		rm.runCommand("Show None")
 
-
-	############  EVENT FUNCTION: to save measurements table ############
+	############# EVENT FUNCTION 5: to save measurements table
 	def save(event):
 		""" save result table in a text file and close window """
 		imp = WM.getCurrentImage()
@@ -212,56 +268,44 @@ def runScript():
 		imp.close()
 		imp2.close()
 
-
-
-
-	######### EVENT FUNCTION: OPEN Next IMAGE + ADD to counter ##########
+	############# EVENT FUNCTION 6: OPEN Next IMAGE + ADD to counter
 	def openNext(event):
+		""" Click opens the next image in the list of files
+		based on the counter value"""
+
 		global counter
 		counter = counter + 1
 		openImageIndex(counter, image_paths)
 
-	######### EVENT FUNCTION: Start with a new image ##########
+	############# EVENT FUNCTION 7: Reset starting image
 	def openChoice(event):
+		""" click opens UI to select which photo to open,
+		and reset the counter """
 		print(image_paths)
-		# Function to select path in a list
-		def getIMGnumber(paths_list):
-			gd = GenericDialog("Select where to start again")
-			gd.addChoice("First photo to open in the list", paths_list, paths_list[1])
-			gd.addNumericField("Number of the photo", 0)
-			gd.showDialog()
-
-			if gd.wasCanceled():
-				print "User canceled dialog!"
-				return None
-
-			# Read out the options
-			pathNumber1 = gd.getNextChoiceIndex()
-			pathNumber2 = gd.getNextNumber()
-			return int(pathNumber2)
-
 		# Choose a starting image
-		start_index = getIMGnumber(image_paths)
+		start_index = choosePhotoIndex(image_names)
 
 		# Update the counter to start where we want
-		global counter
 		counter = start_index
+		global counter  # This updates the counter globally
 		print "New start at:", counter
 
 		# Open image corresponding to counter
 		openImageIndex(counter, image_paths)
 
-	######### EVENT FUNCTION: EXIT ##########
+	############# EVENT FUNCTION 8: EXIT
 	def exitScript(event):
+		""" closes all windows and logs the index of the last opened image """
+		IJ.log("Last image was number:"+ counter)
 		rm = RoiManager().getInstance()
 		rm.close()
 		IJ.run("Close All", "")
 		IJ.log("Exiting plugin...")
 		return
 
+	#_____________________RUNNING Plugin : ___________________________________#
 
-
-	# Select directories
+	# 1. Select directories
 	dir_paths = getDirectories()
 	if dir_paths is not None:
 	    source_directory, result_directory, measured_directory = dir_paths
@@ -269,36 +313,38 @@ def runScript():
 		IJ.log("Selection cancelled. Exiting plugin...")
 		return
 
-	print(source_directory)
-
-	############ Select category of pictures ############
+	# 2. Select category of pictures
 	photoCategories = ["dorsal", "right antenna", "left leg","ventral","mouthpart",
 	"left antenna","right leg","ocular tubercles"]
 
 	photo_label =  getPhotoCategory(photoCategories)
 	if photo_label is not None:
-		photo_cat = photo_label # unpack each parameter
-		print "Category of photos selected:", photo_label
+		photo_cat = photo_label
+		IJ.log("Category of photos selected:" + photo_label)
 	else:
 		IJ.log("Selection cancelled. Exiting plugin...")
 		return
 
-	##### List all image file paths #######
-	image_paths = listPaths(source_directory, photo_label)
-	global image_paths
+	# 3. List all image file paths
+	paths = listPaths(source_directory, photo_label)
+	image_paths = paths[0]
+	image_names = paths[1]
+
 	nb = len(image_paths)
 	if nb!=0:
-		print "We found", nb, "images of", photo_label
+		IJ.log("We found" + str(nb) + "images of" + photo_label)
 	else:
 		IJ.log("No photos found in this cateogry. Exiting plugin...")
 		return
 
-	############ Start by opening first picture ############
-	counter = 0
-	global counter
+	# 4. Choose first picture to open
+	#counter = 0
+	counter = choosePhotoIndex(image_names)
+
+	# 5. Open first image
 	openImageIndex(counter, image_paths)
 
-	############ Define name of trait ############
+	#3. Define name of trait to measure
 	trait_types = ["Body_length", "Body_width", "Siph_length",
 	"Head_width", "Head_length",
 	"Tarsus_length", "Tibia_length",
@@ -306,16 +352,16 @@ def runScript():
 	"Left_Flag3_length", "Left_Flag3_diam",
 	"Rostrum_length"]
 
-	# Apply function a first time :
-	trait = getOptions(trait_types)
+	# Apply function to choose trait labels a first time :
+	trait = getTraitLabel(trait_types)
 	if trait is not None:
 		label = trait # unpack each parameter
-		print "Trait selected for measurement:", trait
+		IJ.log("Trait selected for measurement:" + trait)
 	else:
 		IJ.log("No trait label selected. Try again")
 
 
-	############  Create UI panel ############
+	# 4. Create UI panel
 	frame = JFrame("Actions", visible=True)
 	frame.setLocation(10,10)
 	frame.setSize(500,400)
@@ -327,7 +373,7 @@ def runScript():
 	button4 = JButton("Save Results", actionPerformed=save)
 	button5 = JButton("Clear selection", actionPerformed=clearROI)
 	button6 = JButton("Next image", actionPerformed=openNext)
-	#button7 = JButton("Reset starting image", actionPerformed=openChoice)  #TO DO NOT WORKING
+	button7 = JButton("Reset starting image", actionPerformed=openChoice)  #TO DO NOT WORKING
 	button8 = JButton("Exit", actionPerformed=exitScript)
 
 	frame.setLayout(GridLayout(2,4))

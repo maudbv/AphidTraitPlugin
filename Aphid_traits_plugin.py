@@ -35,6 +35,7 @@ from java.awt import GridLayout
 # Analyzer.setMeasurements(options)
 
 
+
 ###___________________ MAIN PLUGIN function _______________________________ ###
 
 def runScript():
@@ -73,7 +74,7 @@ def runScript():
 		for the analysis: three sub-folders are then automatically selected,
 		but can be modified by user """
 
-		dc = DirectoryChooser("/Users/maud/Desktop/fiji tests/")
+		dc = DirectoryChooser("/Users/maud/Documents/Work/Postdoc Berlin local/data BIBS/insects/aphids 2020/Data/ImageJ data")
 		root_path = dc.getDirectory()
 
 		if root_path is None:
@@ -170,7 +171,6 @@ def runScript():
 		""" ask user input to select the aphid trait name
 		which will be used as label in the results
 		return trait label as a string """
-
 		gd = GenericDialog("Options")
 		gd.addChoice("Choose trait label", types, types[0])
 		gd.showDialog()
@@ -180,21 +180,29 @@ def runScript():
 			return None
 
 		label = gd.getNextChoice()
-		return label # a tuple with the parameters
+		return label
 
 	############# EVENT FUNCTION 1 : choose another trait label: ############
-	def choose_trait(event):
-		""" Event: open dialog for choosing trait label
-		returns the chosen trait label as a string """
-		trait = getTraitLabel(trait_types)
-		IJ.log("Trait selected for measurement:" + trait)
-		return trait
+	### DOES NOT WORK: DOES NOT MODIFY THE GLOBAL VARIABLE TRAIT _ don't know why
+	# def chooseTrait(event):
+	# 	""" Event: open dialog for choosing trait label
+	# 	returns the chosen trait label as a string """
+	# 	global trait
+	# 	trait = getTraitLabel(trait_types)
+	#
+	# 	IJ.log("Trait selected for measurement:" + trait)
 
 	############# EVENT FUNCTION 2: for selecting and labelling ROI
 	def select(event):
 	  """ Select lines or arrows defined by user and add them to ROI Manager """
 
+	  # Select the trait label
+	  global trait
+	  trait = getTraitLabel(trait_types)
+	  IJ.log("Trait selected for measurement:" + trait)
+
 	  imp = WM.getCurrentImage()
+
 	  if imp:
 		# get the ROI manager
 		rm = RoiManager().getInstance()
@@ -209,9 +217,10 @@ def runScript():
 		# create name with repetition number (=index + 1)
 		name = trait + "_" + str(n + 1)
 
+
 		rm.select(n)
 		rm.runCommand("Rename", name)
-		IJ.log("Element" + name + "was added")
+		IJ.log("Element " + name + " was added")
 
 	  else:
 	    IJ.log("Error: Open an image first")
@@ -260,21 +269,18 @@ def runScript():
 		IJ.run("Close")
 
 		imp2 = imp.flatten()
+		imp.close()
 		IJ.saveAs(imp2, "Jpeg",measured_image_filepath)
 		IJ.log( "Modified image was saved:" + measured_image_filepath)
-		imp.changes = True
-
-		imp.changes = FALSE
-		imp.close()
 		imp2.close()
 
 	############# EVENT FUNCTION 6: OPEN Next IMAGE + ADD to counter
 	def openNext(event):
 		""" Click opens the next image in the list of files
 		based on the counter value"""
-
 		global counter
 		counter = counter + 1
+		print "Count is now: ", counter
 		openImageIndex(counter, image_paths)
 
 	############# EVENT FUNCTION 7: Reset starting image
@@ -353,6 +359,7 @@ def runScript():
 	"Rostrum_length"]
 
 	# Apply function to choose trait labels a first time :
+	trait = trait_types[0]
 	trait = getTraitLabel(trait_types)
 	if trait is not None:
 		label = trait # unpack each parameter
@@ -367,7 +374,7 @@ def runScript():
 	frame.setSize(500,400)
 
 
-	button1 = JButton("Choose trait...", actionPerformed=choose_trait)
+	#button1 = JButton("Choose trait...", actionPerformed=chooseTrait)# NOT WORKING
 	button2 = JButton("Add selected", actionPerformed=select)
 	button3 = JButton("Measure all", actionPerformed=measure)
 	button4 = JButton("Save Results", actionPerformed=save)
@@ -378,13 +385,13 @@ def runScript():
 
 	frame.setLayout(GridLayout(2,4))
 
-	frame.add(button1)
+	#frame.add(button1)
 	frame.add(button2)
 	frame.add(button3)
 	frame.add(button4)
 	frame.add(button5)
 	frame.add(button6)
-	#frame.add(button7)
+	frame.add(button7)
 	frame.add(button8)
 	frame.pack()
 	frame.setVisible(True)

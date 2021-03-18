@@ -44,29 +44,7 @@ def runScript():
 
 		###_________ DEFINE FUNCTIONS for the plugin _____________________ ###
 
-	##### FUNCTION save file safely  ##########
-	def safelySave(name_object, folder, ext):
-		""" check if filename exists, add number if it does"""
-		fs = FileSaver(name_object)
 
-		# Test if the folder exists before attempting to save the image:
-		if path.exists(folder) and path.isdir(folder):
-			print "folder exists:", folder
-			filepath = path.join(folder,name_object, ext) # Operating System-specific
-
-			# Modify version name if name already exists
-			i = 1
-			while path.exists(filepath):
-				print "File exists! adding number"
-				filepath = path.join(folder,name_object + "_version"+ i + ext)
-				i = i + 1
-
-			# save with the unique file name
-			fs.saveAs(filepath)
-			print "File saved successfully at ", filepath
-
-		else:
-			print "Folder does not exist or it's not a folder!"
 
 	##### FUNCTION Choose source directory ##########
 	def getDirectories():
@@ -182,6 +160,30 @@ def runScript():
 		label = gd.getNextChoice()
 		return label
 
+	##### FUNCTION save file safely  NOT USED ##########
+	# def safelySave(name_object, folder, ext):
+	# 	""" check if filename exists, add number if it does"""
+	# 	fs = FileSaver(name_object)
+	#
+	# 	# Test if the folder exists before attempting to save the image:
+	# 	if path.exists(folder) and path.isdir(folder):
+	# 		print "folder exists:", folder
+	# 		filepath = path.join(folder,name_object, ext) # Operating System-specific
+	#
+	# 		# Modify version name if name already exists
+	# 		i = 1
+	# 		while path.exists(filepath):
+	# 			print "File exists! adding number"
+	# 			filepath = path.join(folder,name_object + "_version"+ i + ext)
+	# 			i = i + 1
+	#
+	# 		# save with the unique file name
+	# 		fs.saveAs(filepath)
+	# 		print "File saved successfully at ", filepath
+	#
+	# 	else:
+	# 		print "Folder does not exist or it's not a folder!"
+
 	############# EVENT FUNCTION 1 : choose another trait label: ############
 	### DOES NOT WORK: DOES NOT MODIFY THE GLOBAL VARIABLE TRAIT _ don't know why
 	# def chooseTrait(event):
@@ -278,22 +280,27 @@ def runScript():
 	def openNext(event):
 		""" Click opens the next image in the list of files
 		based on the counter value"""
+
 		global counter
 		counter = counter + 1
 		print "Count is now: ", counter
+
+		imp = WM.getCurrentImage()
+		imp.close()
+
 		openImageIndex(counter, image_paths)
 
 	############# EVENT FUNCTION 7: Reset starting image
 	def openChoice(event):
 		""" click opens UI to select which photo to open,
 		and reset the counter """
+		global counter  # This updates the counter globally
 		print(image_paths)
 		# Choose a starting image
 		start_index = choosePhotoIndex(image_names)
 
 		# Update the counter to start where we want
 		counter = start_index
-		global counter  # This updates the counter globally
 		print "New start at:", counter
 
 		# Open image corresponding to counter
@@ -302,12 +309,15 @@ def runScript():
 	############# EVENT FUNCTION 8: EXIT
 	def exitScript(event):
 		""" closes all windows and logs the index of the last opened image """
-		IJ.log("Last image was number:"+ counter)
+		global running
+		IJ.log("Last image was number:"+ str(counter))
 		rm = RoiManager().getInstance()
 		rm.close()
 		IJ.run("Close All", "")
 		IJ.log("Exiting plugin...")
-		return
+		#sys.exit() # closes ImageJ
+		frame.dispose()
+		running = 1
 
 	#_____________________RUNNING Plugin : ___________________________________#
 
@@ -326,7 +336,7 @@ def runScript():
 	photo_label =  getPhotoCategory(photoCategories)
 	if photo_label is not None:
 		photo_cat = photo_label
-		IJ.log("Category of photos selected:" + photo_label)
+		IJ.log("Category of photos selected: " + photo_label)
 	else:
 		IJ.log("Selection cancelled. Exiting plugin...")
 		return
@@ -338,13 +348,14 @@ def runScript():
 
 	nb = len(image_paths)
 	if nb!=0:
-		IJ.log("We found" + str(nb) + "images of" + photo_label)
+		IJ.log("We found " + str(nb) + " images of " + photo_label)
 	else:
 		IJ.log("No photos found in this cateogry. Exiting plugin...")
 		return
 
 	# 4. Choose first picture to open
 	#counter = 0
+	global counter
 	counter = choosePhotoIndex(image_names)
 
 	# 5. Open first image
@@ -360,18 +371,19 @@ def runScript():
 
 	# Apply function to choose trait labels a first time :
 	trait = trait_types[0]
-	trait = getTraitLabel(trait_types)
-	if trait is not None:
-		label = trait # unpack each parameter
-		IJ.log("Trait selected for measurement:" + trait)
-	else:
-		IJ.log("No trait label selected. Try again")
+	#trait = getTraitLabel(trait_types)
+	#if trait is not None:
+	#	label = trait # unpack each parameter
+	#	IJ.log("Trait selected for measurement:" + trait)
+	#else:
+	#	IJ.log("No trait label selected. Try again")
 
 
 	# 4. Create UI panel
 	frame = JFrame("Actions", visible=True)
-	frame.setLocation(10,10)
+	frame.setLocation(800,400)
 	frame.setSize(500,400)
+	frame.DISPOSE_ON_CLOSE
 
 
 	#button1 = JButton("Choose trait...", actionPerformed=chooseTrait)# NOT WORKING
@@ -380,7 +392,7 @@ def runScript():
 	button4 = JButton("Save Results", actionPerformed=save)
 	button5 = JButton("Clear selection", actionPerformed=clearROI)
 	button6 = JButton("Next image", actionPerformed=openNext)
-	button7 = JButton("Reset starting image", actionPerformed=openChoice)  #TO DO NOT WORKING
+	button7 = JButton("Reset starting image", actionPerformed=openChoice)
 	button8 = JButton("Exit", actionPerformed=exitScript)
 
 	frame.setLayout(GridLayout(2,4))
@@ -393,10 +405,9 @@ def runScript():
 	frame.add(button6)
 	frame.add(button7)
 	frame.add(button8)
+
 	frame.pack()
-	frame.setVisible(True)
-
-
+	#frame.setVisible(True)
 
 ##______________ RUN script____________ ###
 runScript()

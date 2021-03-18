@@ -362,12 +362,13 @@ def runScript():
 	openImageIndex(counter, image_paths)
 
 	#3. Define name of trait to measure
-	trait_types = ["Body_length", "Body_width", "Siph_length",
-	"Head_width", "Head_length",
-	"Tarsus_length", "Tibia_length",
-	"Right_Flag3_length", "Right_Flag3_diam",
-	"Left_Flag3_length", "Left_Flag3_diam",
-	"Rostrum_length"]
+	trait_types = ["body_length", "abdomen_length", "body_width", "siph_width",
+	"siph_length","head_width","head_length", "thorax_width",
+	"tarsus_length_left","tarsus_length_right",
+	"tibia_length_left","tibia_length_right",
+	"femur_length_left","femur_length_right",
+	"flag_length_left","flag_length_right",
+	"rostrum_length"]
 
 	# Apply function to choose trait labels a first time :
 	trait = trait_types[0]

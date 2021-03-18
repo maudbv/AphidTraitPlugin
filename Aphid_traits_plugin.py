@@ -1,4 +1,8 @@
-# Script to measure Aphid traits on many microscopic photos
+"""
+ImageJ plugin to measure Aphid traits on microscopic photos
+written in Jython
+by maud bernard-verdier, March 2021
+"""
 
 ###____________  Load classes ____________###
 

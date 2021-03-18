@@ -290,7 +290,8 @@ def runScript():
 		print "Count is now: ", counter
 
 		imp = WM.getCurrentImage()
-		imp.close()
+		if imp is not None:
+			imp.close()
 
 		openImageIndex(counter, image_paths)
 
@@ -386,7 +387,7 @@ def runScript():
 
 	# 4. Create UI panel
 	frame = JFrame("Actions", visible=True)
-	frame.setLocation(800,400)
+	frame.setLocation(10,10)
 	frame.setSize(500,400)
 	frame.DISPOSE_ON_CLOSE
 
@@ -400,7 +401,7 @@ def runScript():
 	button7 = JButton("Reset starting image", actionPerformed=openChoice)
 	button8 = JButton("Exit", actionPerformed=exitScript)
 
-	frame.setLayout(GridLayout(2,4))
+	frame.setLayout(GridLayout(3,3))
 
 	#frame.add(button1)
 	frame.add(button2)

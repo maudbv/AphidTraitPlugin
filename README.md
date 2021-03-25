@@ -32,6 +32,6 @@ It is not generic at this stage, and designed for use in my lab, but could easil
 
 <img width="1148" alt="Screen Shot 2021-03-25 at 10 01 04" src="https://user-images.githubusercontent.com/6454302/112447066-2e161a80-8d51-11eb-94c3-efdeb71ab322.png">
 
-13) if you are happy, click “save results”: this will close the image and save the results (check the first time in your folders to see if it really works!!)
-14) clear selection (it erases all the ROIs, or else they get transferred to the next picture) - this is also useful if you have too many messy measurements and you want to restart on the same picture. you can also erase the measurements in the “result” window by selecting a line and clicking the normal “erase” on your keyboard.
+13) if you are happy, click “save results”: this will close the image and save the results. New files should be written in the "results" and "measured images" folders.
+14) clear selection (it erases all the ROIs, or else they get transferred to the next picture) - this is also useful if you want to restart on the same picture. you can also erase the measurements in the “result” window by selecting a line and clicking "backspace" on your keyboard.
 15) exit when you are done

@@ -30,7 +30,16 @@ from fiji.util.gui import GenericDialogPlus
 from javax.swing import JFrame, JButton, JOptionPane
 from java.awt import GridLayout
 
-###___________________ SET IMAGEJ OPTIONS _________________________________ ###
+
+
+###___________________ SET OPTIONS _________________________________ ###
+
+# Determine OS for file paths:
+import java.lang.System
+OSname = casefold(java.lang.System.getProperty("os.name"))
+path_sep = "/" # for Unix systems
+if OSname.find("win") > -1:
+	path_sep = "\\" # For windows systems
 
 # # label the ROI and add to image
 # options = LABELS + ADD_TO_OVERLAY
@@ -56,7 +65,7 @@ def runScript():
 		for the analysis: three sub-folders are then automatically selected,
 		but can be modified by user """
 
-		dc = DirectoryChooser("/Users/maud/Documents/Work/Postdoc Berlin local/data BIBS/insects/aphids 2020/Data/ImageJ data")
+		dc = DirectoryChooser("Choose root directory")
 		root_path = dc.getDirectory()
 
 		if root_path is None:
@@ -64,9 +73,9 @@ def runScript():
 			return
 
 		gdp = GenericDialogPlus("Choose folders...")
-		gdp.addDirectoryField("Folder of original images", root_path + "images/")
-		gdp.addDirectoryField("Folder to save results", root_path + "results/")
-		gdp.addDirectoryField("Folder to save measured images", root_path + "measured images/")
+		gdp.addDirectoryField("Folder of original images", root_path + "images" + path_sep)
+		gdp.addDirectoryField("Folder to save results", root_path + "results" + path_sep)
+		gdp.addDirectoryField("Folder to save measured images", root_path + "measured images" + path_sep)
 		gdp.showDialog()
 
 		if gdp.wasCanceled():

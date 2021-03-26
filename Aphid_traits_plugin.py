@@ -36,7 +36,7 @@ from java.awt import GridLayout
 
 # Determine OS for file paths:
 import java.lang.System
-OSname = casefold(java.lang.System.getProperty("os.name"))
+OSname =java.lang.System.getProperty("os.name")
 path_sep = "/" # for Unix systems
 if OSname.find("win") > -1:
 	path_sep = "\\" # For windows systems
@@ -118,7 +118,7 @@ def runScript():
 				if ind > -1 :
 					path_list.append(os.path.join(root, filename))
 					filename_list.append(filename)
-					print filename
+					IJ.log(filename) # Lists file names in the log window
 				else :
 					continue
 		return (path_list, filename_list) # a tupple
@@ -214,7 +214,11 @@ def runScript():
 	  # Select the trait label
 	  global trait
 	  trait = getTraitLabel(trait_types)
-	  IJ.log("Trait selected for measurement:" + trait)
+	  if trait is None:
+		  IJ.log("No trait label selected")
+		  return
+	  else:
+		IJ.log("Trait selected for measurement:" + trait)
 
 	  imp = WM.getCurrentImage()
 
